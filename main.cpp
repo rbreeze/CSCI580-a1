@@ -142,9 +142,6 @@ int main(int argc, char** argv) {
   Node* start_node = grid[start_x][start_y]; 
   Node* goal_node = grid[goal_x][goal_y];
 
-  cout << "Start: " << start_node->x << ", " << start_node->y << endl;
-  cout << "Goal: " << goal_node->x << ", " << goal_node->y << endl;
-
   // set start node's f score to its manhattan distance from the goal
   start_node->f_score = get_manhattan_distance(start_node, goal_node);
 
@@ -214,17 +211,24 @@ int main(int argc, char** argv) {
 
   // reconstruct path
   vector<Node*> path;
-  path.push_back(current);
 
+  // draw path
   while (cameFrom[current]) {
+    Node* prev = cameFrom[current];
+    if (prev->x > current->x) 
+      current->terrain = '<';
+    else if (prev->x < current->x) 
+      current->terrain = '>';
+    else if (prev->y > current->y)
+      current->terrain = '^';
+    else 
+      current->terrain = 'V';
     current = cameFrom[current];
-    path.push_back(current); 
   }
 
-  // set terrain of path
-  for (int i = 0; i < path.size(); i++) {
-    path[i]->terrain = '1';
-  }
+  // set start and goal node characters
+  start_node->terrain = 'S'; 
+  goal_node->terrain = 'G';
 
   // print the grid
   for (int j = 0; j < HEIGHT; j++) {
@@ -233,8 +237,6 @@ int main(int argc, char** argv) {
     }
     cout << endl;
   }
-
-  cout << endl;
 
   // De-Allocate memory
   for (int i = 0; i < HEIGHT; ++i) delete [] grid[i];
