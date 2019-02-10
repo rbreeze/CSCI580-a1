@@ -1,0 +1,5 @@
+tests
+my.out
+run_tests
+*.o
+main
