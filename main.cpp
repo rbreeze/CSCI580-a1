@@ -216,14 +216,14 @@ int main(int argc, char** argv) {
   vector<Node*> path;
   path.push_back(current);
 
-  map<Node*, Node*>::iterator i; 
-  for (i = cameFrom.begin(); i != cameFrom.end(); i++) {
-    path.push_back(i->second); 
+  while (cameFrom[current]) {
+    current = cameFrom[current];
+    path.push_back(current); 
   }
 
   // set terrain of path
   for (int i = 0; i < path.size(); i++) {
-    grid[path[i]->x][path[i]->y]->terrain = '1';
+    path[i]->terrain = '1';
   }
 
   // print the grid
