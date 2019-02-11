@@ -3,3 +3,5 @@ my.out
 run_tests
 *.o
 main
+*.myout
+output

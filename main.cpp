@@ -39,7 +39,7 @@ struct Node {
   }
 
   void printXY() {
-    cout << x << ", " << y << endl;
+    cout << x << ", " << y;
   }
 
   int x; 
@@ -84,6 +84,16 @@ int get_manhattan_distance(Node* current, Node* goal) {
   return dist; 
 }
 
+// prints the grid
+void printGrid(Node*** grid) {
+  for (int j = 0; j < HEIGHT; j++) {
+    for (int i = 0; i < WIDTH; i++) {
+      cout << *(grid[i][j]);
+    }
+    cout << endl;
+  }
+}
+
 int get_weight(Node* n) {
   switch (n->terrain){
     case '.': 
@@ -122,8 +132,8 @@ int main(int argc, char** argv) {
   int goal_y = argc > 6 ? atoi(argv[6]) : (HEIGHT - 1);
 
   // allocate memory for grid of Node*
-  Node*** grid = new Node** [ HEIGHT ]; 
-  for (int i = 0; i < HEIGHT; ++i)
+  Node*** grid = new Node** [HEIGHT]; 
+  for (int i = 0; i <= HEIGHT; i++)
     grid[i] = new Node* [WIDTH];
 
   // declare character to store input
@@ -133,8 +143,12 @@ int main(int argc, char** argv) {
   for (int j = 0; j < HEIGHT; j++) {
     for (int i = 0; i < WIDTH; i++) {
       cin >> input; 
-      // store Node* in grid with initial G and F scores of infinity
-      grid[i][j] = new Node(i, j, input, INF, INF);
+
+      // created Node* with initial G and F scores of infinity
+      Node* n = new Node(i, j, input, INF, INF);
+
+      // store Node* in grid 
+      grid[i][j] = n;
     }
   }
 
@@ -178,7 +192,7 @@ int main(int argc, char** argv) {
     
     // define caps for x and y directions
     int max_x = x >= WIDTH-1 ? WIDTH-1 : x+1; 
-    int max_y = y >= HEIGHT-1 ? HEIGHT-1 : y+1; 
+    int max_y = y >= HEIGHT-1 ? HEIGHT-1 : y+1;
 
     // iterate through current node's neighbors
     for (int i = min_x; i <= max_x; i++) {
@@ -188,8 +202,8 @@ int main(int argc, char** argv) {
           // define current neighbor
           Node* neighbor = grid[i][j];
 
-          // only continue if the neighbor isn't closed
-          if (!neighbor->closed) {
+          // only continue if the neighbor isn't closed or impassable
+          if (!neighbor->closed && neighbor->terrain != 'x') {
 
             int tentative_g = current->g_score + get_weight(neighbor);
 
@@ -216,13 +230,13 @@ int main(int argc, char** argv) {
   while (cameFrom[current]) {
     Node* prev = cameFrom[current];
     if (prev->x > current->x) 
-      current->terrain = '<';
+      prev->terrain = '<';
     else if (prev->x < current->x) 
-      current->terrain = '>';
+      prev->terrain = '>';
     else if (prev->y > current->y)
-      current->terrain = '^';
+      prev->terrain = '^';
     else 
-      current->terrain = 'V';
+      prev->terrain = 'v';
     current = cameFrom[current];
   }
 
@@ -231,15 +245,10 @@ int main(int argc, char** argv) {
   goal_node->terrain = 'G';
 
   // print the grid
-  for (int j = 0; j < HEIGHT; j++) {
-    for (int i = 0; i < WIDTH; i++) {
-      cout << *(grid[i][j]);
-    }
-    cout << endl;
-  }
+  printGrid(grid);
 
   // De-Allocate memory
-  for (int i = 0; i < HEIGHT; ++i) delete [] grid[i];
+  for (int i = 0; i <= HEIGHT; ++i) delete [] grid[i];
   delete [] grid;
 
   return 0;
