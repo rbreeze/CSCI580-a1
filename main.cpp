@@ -8,6 +8,8 @@
 #include <queue> 
 #include <vector> 
 #include <map> 
+#include <iterator>
+#include <algorithm>
 
 #define INF INT_MAX
 
@@ -16,10 +18,11 @@ using std::cin;
 using std::endl;
 using std::ostream;
 using std::vector;
-using std::priority_queue;
+using std::sort;
 using std::map;
 using std::string;
 using std::to_string;
+using std::abs;
 
 int WIDTH; int HEIGHT; 
 
@@ -51,15 +54,17 @@ struct Node {
   bool open = false; 
   bool closed = false; 
   bool printed = false; 
+  int index = 0;
   char terrain;
 }; 
 
 // Node comparison structure for priority queue based on F score
-struct NodeFComparison {
-  bool operator()(Node* a, Node* b) {
-    return a->f_score > b->f_score; 
-  }
-};
+bool NodeFComparison(Node* a, Node* b) {
+  if (a->f_score == b->f_score) 
+    return a->index > b->index;
+    
+  return a->f_score > b->f_score; 
+}
 
 // Node comparison structure for x and y coordinates
 struct NodeXYComparison {
@@ -76,12 +81,12 @@ ostream& operator<<(ostream& s, const Node& n) {
   return s; 
 }
 
-// Heuristic function
+// Heuristic function, uses taxicab geometry to estimate distance
 int get_manhattan_distance(Node* current, Node* goal) {
   // x component of heuristic
-  int dist = goal->x - current->x; 
+  int dist = abs(goal->x - current->x); 
   // add y component
-  dist += goal->y - current->y; 
+  dist += abs(goal->y - current->y); 
   return dist; 
 }
 
@@ -108,7 +113,7 @@ int get_weight(Node* n) {
     case 'x': 
       return INF; 
     default: 
-      return 0; 
+      return INF; 
   }
 }
 
@@ -157,30 +162,39 @@ int main(int argc, char** argv) {
   Node* start_node = grid[start_x][start_y]; 
   Node* goal_node = grid[goal_x][goal_y];
 
-  // set start node's f score to its manhattan distance from the goal
-  start_node->f_score = get_manhattan_distance(start_node, goal_node);
-
   // set start node's g score to zero
   start_node->g_score = 0; 
 
-  // declare a priority queue to hold open nodes and push start node to it
-  priority_queue<Node*, vector<Node*>, NodeFComparison> open; 
-  open.push(start_node);
+  // set start node's f score to its manhattan distance from the goal
+  start_node->f_score = get_manhattan_distance(start_node, goal_node);
+
+  // set index of priority queue to 0
+  int index = 0; 
+
+  // declare a vector to hold open nodes and push start node to it
+  vector<Node*> open;
+  open.push_back(start_node);
+
+  // set first node's index and increment
+  start_node->index = 1; 
+  index++; 
 
   // declare map for most efficient path
   map<Node*,Node*,NodeXYComparison> cameFrom;
 
   // cycle through queue 
   Node* current; 
+
   while (!open.empty()) {
     // current node is the one with the lowest f_score
-    current = open.top(); 
+    std::sort(open.begin(), open.end(), NodeFComparison); 
+    current = open.back();
 
     // if we've reached our goal, stop the loop
     if (current == goal_node) break; 
 
     // remove current from open and add it to closed
-    open.pop();
+    open.pop_back();
     current->open = false;
     current->closed = true; 
 
@@ -194,7 +208,7 @@ int main(int argc, char** argv) {
     Node* left = x > 0 ? grid[x-1][y] : nullptr;
 
     // define array of neighbors to iterate over
-    Node* neighbors[4] = { left, down, up, right };
+    Node* neighbors[4] = { down, up, right, left };
 
     // iterate through current node's neighbors
     for (int i = 0; i < 4; i++) {
@@ -206,16 +220,19 @@ int main(int argc, char** argv) {
       if (neighbor == nullptr || neighbor->closed || neighbor->terrain == 'x')
         continue;
 
-      int tentative_g = current->g_score + get_weight(neighbor);
+      // cost of current neighbor is current node's g score + its weight
+      int current_cost = current->g_score + get_weight(neighbor);
 
       if (!neighbor->open) {
-        open.push(neighbor);
+        open.push_back(neighbor);
+        neighbor->index = index; 
+        index++; 
         neighbor->open = true;
-      } else if (tentative_g >= neighbor->g_score) continue; 
-
+      } else if (current_cost >= neighbor->g_score) continue; 
+      
       // if this is the currently best available path, save it
       cameFrom[neighbor] = current;
-      neighbor->g_score = tentative_g; 
+      neighbor->g_score = current_cost; 
       neighbor->f_score  = neighbor->g_score + get_manhattan_distance(neighbor, goal_node);
     }
 
