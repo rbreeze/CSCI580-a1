@@ -50,6 +50,7 @@ struct Node {
   int cost; 
   bool open = false; 
   bool closed = false; 
+  bool printed = false; 
   char terrain;
 }; 
 
@@ -80,7 +81,7 @@ int get_manhattan_distance(Node* current, Node* goal) {
   // x component of heuristic
   int dist = goal->x - current->x; 
   // add y component
-  dist+= goal->y - current->y; 
+  dist += goal->y - current->y; 
   return dist; 
 }
 
@@ -132,9 +133,9 @@ int main(int argc, char** argv) {
   int goal_y = argc > 6 ? atoi(argv[6]) : (HEIGHT - 1);
 
   // allocate memory for grid of Node*
-  Node*** grid = new Node** [HEIGHT]; 
-  for (int i = 0; i <= HEIGHT; i++)
-    grid[i] = new Node* [WIDTH];
+  Node*** grid = new Node** [WIDTH]; 
+  for (int i = 0; i < WIDTH; i++)
+    grid[i] = new Node* [HEIGHT];
 
   // declare character to store input
   char input;
@@ -186,59 +187,60 @@ int main(int argc, char** argv) {
     // set local variables for more concise syntax
     int x = current->x; int y = current->y; 
 
-    // define minimums for x and y directions
-    int min_x = x > 0 ? x - 1 : x;
-    int min_y = y > 0 ? y - 1 : y;  
-    
-    // define caps for x and y directions
-    int max_x = x >= WIDTH-1 ? WIDTH-1 : x+1; 
-    int max_y = y >= HEIGHT-1 ? HEIGHT-1 : y+1;
+    // make pointers to all neighbors
+    Node* up = y > 0 ? grid[x][y-1] : nullptr;
+    Node* down = y < HEIGHT-1 ? grid[x][y+1] : nullptr; 
+    Node* right = x < WIDTH-1 ? grid[x+1][y] : nullptr;
+    Node* left = x > 0 ? grid[x-1][y] : nullptr;
+
+    // define array of neighbors to iterate over
+    Node* neighbors[4] = { left, down, up, right };
 
     // iterate through current node's neighbors
-    for (int i = min_x; i <= max_x; i++) {
-      for (int j = min_y; j <= max_y; j++) {
-        if (i == x || j == y) {
+    for (int i = 0; i < 4; i++) {
 
-          // define current neighbor
-          Node* neighbor = grid[i][j];
+      // define current neighbor
+      Node* neighbor = neighbors[i];
 
-          // only continue if the neighbor isn't closed or impassable
-          if (!neighbor->closed && neighbor->terrain != 'x') {
+      // check if neighbor is null, closed, or impassable
+      if (neighbor == nullptr || neighbor->closed || neighbor->terrain == 'x')
+        continue;
 
-            int tentative_g = current->g_score + get_weight(neighbor);
+      int tentative_g = current->g_score + get_weight(neighbor);
 
-            if (!neighbor->open) {
-              open.push(neighbor);
-              neighbor->open = true;
-            }
-            if (tentative_g <= neighbor->g_score) {
-              cameFrom[neighbor] = current;
-              neighbor->g_score = tentative_g; 
-              neighbor->f_score  = neighbor->g_score + get_manhattan_distance(neighbor, goal_node);
-            }
-          }
-        }
-      }
+      if (!neighbor->open) {
+        open.push(neighbor);
+        neighbor->open = true;
+      } else if (tentative_g >= neighbor->g_score) continue; 
+
+      // if this is the currently best available path, save it
+      cameFrom[neighbor] = current;
+      neighbor->g_score = tentative_g; 
+      neighbor->f_score  = neighbor->g_score + get_manhattan_distance(neighbor, goal_node);
     }
 
   }
 
-  // reconstruct path
-  vector<Node*> path;
-
   // draw path
-  while (cameFrom[current]) {
+
+   while (cameFrom[current] && !current->printed) {
+
     Node* prev = cameFrom[current];
-    if (prev->x > current->x) 
-      prev->terrain = '<';
-    else if (prev->x < current->x) 
-      prev->terrain = '>';
+
+    if (prev->y < current->y) 
+      prev->terrain = 'v';
     else if (prev->y > current->y)
       prev->terrain = '^';
-    else 
-      prev->terrain = 'v';
-    current = cameFrom[current];
-  }
+    else if (prev->x < current->x) 
+      prev->terrain = '>';
+    else if (prev->x > current->x) 
+      prev->terrain = '<';
+
+    current->printed = true;
+
+    current = prev;
+
+  } 
 
   // set start and goal node characters
   start_node->terrain = 'S'; 
@@ -248,7 +250,7 @@ int main(int argc, char** argv) {
   printGrid(grid);
 
   // De-Allocate memory
-  for (int i = 0; i <= HEIGHT; ++i) delete [] grid[i];
+  for (int i = 0; i < WIDTH; ++i) delete [] grid[i];
   delete [] grid;
 
   return 0;

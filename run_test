@@ -1,0 +1,1 @@
+./main $(cat tests/t$1.cmd) < tests/t$1.in > results/t$1.myout
